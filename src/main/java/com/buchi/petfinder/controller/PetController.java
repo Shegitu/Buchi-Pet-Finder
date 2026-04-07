@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/pets")
@@ -14,36 +15,34 @@ public class PetController {
     @Autowired
     private PetRepository petRepository;
 
+    // Get all pets
     @GetMapping
     public List<Pet> getAllPets() {
         return petRepository.findAll();
     }
 
+    // Get pet by ID
+    @GetMapping("/{id}")
+    public Optional<Pet> getPetById(@PathVariable String id) {
+        return petRepository.findById(id);
+    }
+
+    // Add new pet
     @PostMapping
-    public Pet createPet(@RequestBody Pet pet) {
+    public Pet addPet(@RequestBody Pet pet) {
         return petRepository.save(pet);
     }
 
-    @GetMapping("/{id}")
-    public Pet getPetById(@PathVariable String id) {
-        return petRepository.findById(id).orElse(null);
-    }
-
+    // Update pet
     @PutMapping("/{id}")
-    public Pet updatePet(@PathVariable String id, @RequestBody Pet petDetails) {
-        Pet pet = petRepository.findById(id).orElse(null);
-        if (pet != null) {
-            pet.setName(petDetails.getName());
-            pet.setType(petDetails.getType());
-            pet.setAge(petDetails.getAge());
-            return petRepository.save(pet);
-        }
-        return null;
+    public Pet updatePet(@PathVariable String id, @RequestBody Pet pet) {
+        pet.setId(id);
+        return petRepository.save(pet);
     }
 
+    // Delete pet
     @DeleteMapping("/{id}")
-    public String deletePet(@PathVariable String id) {
+    public void deletePet(@PathVariable String id) {
         petRepository.deleteById(id);
-        return "Pet removed with id " + id;
     }
 }
