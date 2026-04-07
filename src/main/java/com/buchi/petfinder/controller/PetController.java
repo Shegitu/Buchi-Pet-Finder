@@ -1,48 +1,58 @@
 package com.buchi.petfinder.controller;
 
 import com.buchi.petfinder.model.Pet;
-import com.buchi.petfinder.repository.PetRepository;
+import com.buchi.petfinder.service.PetService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
-@RequestMapping("/pets")
+@RequestMapping("/api/pets")
 public class PetController {
 
-    @Autowired
-    private PetRepository petRepository;
+    private final PetService petService;
 
-    // Get all pets
+    @Autowired
+    public PetController(PetService petService) {
+        this.petService = petService;
+    }
+
     @GetMapping
     public List<Pet> getAllPets() {
-        return petRepository.findAll();
+        return petService.getAllPets();
     }
 
-    // Get pet by ID
     @GetMapping("/{id}")
-    public Optional<Pet> getPetById(@PathVariable String id) {
-        return petRepository.findById(id);
+    public ResponseEntity<Pet> getPetById(@PathVariable String id) {
+        return petService.getPetById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Add new pet
     @PostMapping
-    public Pet addPet(@RequestBody Pet pet) {
-        return petRepository.save(pet);
+    public Pet createPet(@RequestBody Pet pet) {
+        return petService.createPet(pet);
     }
 
-    // Update pet
     @PutMapping("/{id}")
-    public Pet updatePet(@PathVariable String id, @RequestBody Pet pet) {
-        pet.setId(id);
-        return petRepository.save(pet);
+    public ResponseEntity<Pet> updatePet(@PathVariable String id, @RequestBody Pet petDetails) {
+        try {
+            Pet updatedPet = petService.updatePet(id, petDetails);
+            return ResponseEntity.ok(updatedPet);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    // Delete pet
     @DeleteMapping("/{id}")
-    public void deletePet(@PathVariable String id) {
-        petRepository.deleteById(id);
+    public ResponseEntity<Void> deletePet(@PathVariable String id) {
+        try {
+            petService.deletePet(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
