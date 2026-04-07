@@ -31,17 +31,16 @@ public class PetService {
     }
 
     public Pet updatePet(String id, Pet petDetails) {
-        Pet pet = petRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pet not found with id " + id));
+    Pet existingPet = petRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Pet with id " + id + " not found"));
+    existingPet.setName(petDetails.getName());
+    existingPet.setType(petDetails.getType());
+    existingPet.setAge(petDetails.getAge());
+    return petRepository.save(existingPet);
+}
 
-        pet.setName(petDetails.getName());
-        pet.setType(petDetails.getType());
-        pet.setAge(petDetails.getAge());
-
-        return petRepository.save(pet);
-    }
-
-    public void deletePet(String id) {
-        petRepository.deleteById(id);
-    }
+public void deletePet(String id) {
+    Pet existingPet = petRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Pet with id " + id + " not found"));
+    petRepository.delete(existingPet);
 }
