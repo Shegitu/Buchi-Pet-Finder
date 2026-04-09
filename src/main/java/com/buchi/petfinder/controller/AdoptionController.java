@@ -1,6 +1,7 @@
 package com.buchi.petfinder.controller;
 
 import com.buchi.petfinder.model.Adoption;
+import com.buchi.petfinder.model.Pet;
 import com.buchi.petfinder.service.AdoptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -53,5 +54,18 @@ public class AdoptionController {
     @GetMapping("/pet/{petId}")
     public List<Adoption> getAdoptionsByPet(@PathVariable String petId) {
         return adoptionService.getAdoptionsByPet(petId);
+    }
+
+    @GetMapping("/status/{status}")
+    public List<Adoption> getAdoptionsByStatus(@PathVariable String status) {
+        return adoptionService.getAdoptionsByStatus(status);
+    }
+
+    @GetMapping("/filter/pets")
+    public List<Pet> filterPets(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer minAge,
+            @RequestParam(required = false) Integer maxAge) {
+        return adoptionService.filterPets(type, minAge, maxAge);
     }
 }

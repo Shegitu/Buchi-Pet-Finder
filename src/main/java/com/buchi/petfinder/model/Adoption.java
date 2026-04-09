@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
@@ -15,6 +16,10 @@ public class Adoption {
     private String id;
     private String petId;
     private String customerId;
-    private String adoptionDate; // e.g., "2026-04-09"
-    private String status; // "Pending", "Approved", "Rejected"
+    private String adoptionDate;
+    private String status;
+    @Transient
+    private Pet pet;
+    @Transient
+    private Customer customer;
 }
