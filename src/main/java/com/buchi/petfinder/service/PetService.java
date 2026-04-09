@@ -1,5 +1,6 @@
 package com.buchi.petfinder.service;
 
+import com.buchi.petfinder.dto.PetDTO;
 import com.buchi.petfinder.model.Pet;
 import com.buchi.petfinder.repository.PetRepository;
 import com.buchi.petfinder.exception.ResourceNotFoundException;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PetService {
@@ -18,20 +20,33 @@ public class PetService {
         this.petRepository = petRepository;
     }
 
-    public List<Pet> getAllPets() {
-        return petRepository.findAll();
+    private PetDTO mapToDTO(Pet pet) {
+        return new PetDTO(
+                pet.getId(),
+                pet.getName(),
+                pet.getType(),
+                pet.getAge()
+        );
     }
 
-    public Pet getPetById(String id) {
-        return petRepository.findById(id)
+    public List<PetDTO> getAllPets() {
+        return petRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public PetDTO getPetById(String id) {
+        Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pet with id " + id + " not found"));
+        return mapToDTO(pet);
     }
 
-    public Pet createPet(Pet pet) {
-        return petRepository.save(pet);
+    public PetDTO createPet(Pet pet) {
+        return mapToDTO(petRepository.save(pet));
     }
 
-    public Pet updatePet(String id, Pet petDetails) {
+    public PetDTO updatePet(String id, Pet petDetails) {
         Pet existingPet = petRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pet with id " + id + " not found"));
 
@@ -39,7 +54,7 @@ public class PetService {
         existingPet.setType(petDetails.getType());
         existingPet.setAge(petDetails.getAge());
 
-        return petRepository.save(existingPet);
+        return mapToDTO(petRepository.save(existingPet));
     }
 
     public void deletePet(String id) {
