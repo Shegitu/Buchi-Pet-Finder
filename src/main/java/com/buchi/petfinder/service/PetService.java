@@ -28,6 +28,25 @@ public class PetService {
                 pet.getAge()
         );
     }
+     
+    public List<PetDTO> searchPets(String type, Integer age, String name) {
+
+    List<Pet> pets;
+
+    if (type != null) {
+        pets = petRepository.findByType(type);
+    } else if (age != null) {
+        pets = petRepository.findByAge(age);
+    } else if (name != null) {
+        pets = petRepository.findByNameContainingIgnoreCase(name);
+    } else {
+        pets = petRepository.findAll();
+    }
+
+    return pets.stream()
+            .map(this::mapToDTO)
+            .toList();
+}
 
     public List<PetDTO> getAllPets() {
         return petRepository.findAll()

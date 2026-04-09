@@ -29,6 +29,15 @@ public class PetController {
     public ResponseEntity<PetDTO> getPetById(@PathVariable String id) {
         return ResponseEntity.ok(petService.getPetById(id));
     }
+    
+    @GetMapping("/search")
+public ResponseEntity<List<PetDTO>> searchPets(
+        @RequestParam(required = false) String type,
+        @RequestParam(required = false) Integer age,
+        @RequestParam(required = false) String name) {
+
+    return ResponseEntity.ok(petService.searchPets(type, age, name));
+}
 
     @PostMapping
     public ResponseEntity<PetDTO> createPet(@RequestBody Pet pet) {
