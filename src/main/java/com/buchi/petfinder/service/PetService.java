@@ -1,85 +1,93 @@
 package com.buchi.petfinder.service;
 
-import com.buchi.petfinder.dto.PetDTO;
+import com.buchi.petfinder.dto.*;
+import com.buchi.petfinder.exception.ResourceNotFoundException;
 import com.buchi.petfinder.model.Pet;
 import com.buchi.petfinder.repository.PetRepository;
-import com.buchi.petfinder.exception.ResourceNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class PetService {
 
     private final PetRepository petRepository;
+    private final FileStorageService fileStorageService;
 
-    @Autowired
-    public PetService(PetRepository petRepository) {
+    public PetService(PetRepository petRepository,
+                      FileStorageService fileStorageService) {
         this.petRepository = petRepository;
+        this.fileStorageService = fileStorageService;
     }
 
-    private PetDTO mapToDTO(Pet pet) {
-        return new PetDTO(
-                pet.getId(),
-                pet.getName(),
-                pet.getType(),
-                pet.getAge()
-        );
-    }
-     
-    public List<PetDTO> searchPets(String type, Integer age, String name) {
+    public PetIdResponse createPet(PetCreateRequest req) {
 
-    List<Pet> pets;
+        Pet pet = new Pet();
+        pet.setType(req.getType());
+        pet.setGender(req.getGender());
+        pet.setSize(req.getSize());
+        pet.setAge(req.getAge());
+        pet.setGoodWithChildren(req.getGoodWithChildren());
+        pet.setSource("local");
+        pet.setPhotos(new ArrayList<>());
 
-    if (type != null) {
-        pets = petRepository.findByType(type);
-    } else if (age != null) {
-        pets = petRepository.findByAge(age);
-    } else if (name != null) {
-        pets = petRepository.findByNameContainingIgnoreCase(name);
-    } else {
-        pets = petRepository.findAll();
-    }
+        if (req.getPhotos() != null) {
+            List<String> urls = req.getPhotos().stream()
+                    .map(fileStorageService::saveFile)
+                    .toList();
+            pet.setPhotos(urls);
+        }
 
-    return pets.stream()
-            .map(this::mapToDTO)
-            .toList();
-}
+        Pet saved = petRepository.save(pet);
 
-    public List<PetDTO> getAllPets() {
-        return petRepository.findAll()
-                .stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        PetIdResponse res = new PetIdResponse();
+        res.setPetId(saved.getId());
+        return res;
     }
 
     public PetDTO getPetById(String id) {
         Pet pet = petRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pet with id " + id + " not found"));
-        return mapToDTO(pet);
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found"));
+
+        return map(pet);
     }
 
-    public PetDTO createPet(Pet pet) {
-        return mapToDTO(petRepository.save(pet));
-    }
-
-    public PetDTO updatePet(String id, Pet petDetails) {
-        Pet existingPet = petRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pet with id " + id + " not found"));
-
-        existingPet.setName(petDetails.getName());
-        existingPet.setType(petDetails.getType());
-        existingPet.setAge(petDetails.getAge());
-
-        return mapToDTO(petRepository.save(existingPet));
+    public Pet getPetEntityById(String id) {
+        return petRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found"));
     }
 
     public void deletePet(String id) {
-        Pet existingPet = petRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pet with id " + id + " not found"));
-
-        petRepository.delete(existingPet);
+        Pet pet = getPetEntityById(id);
+        petRepository.delete(pet);
     }
-}
+
+    public PetDTO uploadPhotos(String id, List<MultipartFile> files) {
+
+        Pet pet = getPetEntityById(id);
+
+        List<String> urls = files.stream()
+                .map(fileStorageService::saveFile)
+                .toList();
+
+        if (pet.getPhotos() == null) {
+            pet.setPhotos(new ArrayList<>());
+        }
+
+        pet.getPhotos().addAll(urls);
+
+        Pet saved = petRepository.save(pet);
+        return map(saved);
+    }
+
+   private PetDTO map(Pet pet) {
+    PetDTO dto = new PetDTO();
+    dto.setId(pet.getId());
+    dto.setName(pet.getName());
+    dto.setType(pet.getType());
+    dto.setAge(pet.getAge()); // ⚠️ use correct type (String or int)
+    dto.setPhotos(pet.getPhotos());
+    return dto;
+} }

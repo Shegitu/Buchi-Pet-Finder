@@ -12,14 +12,18 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @Document(collection = "adoptions")
 public class Adoption {
+
     @Id
     private String id;
+
     private String petId;
     private String customerId;
     private String adoptionDate;
     private String status;
+
     @Transient
     private Pet pet;
+
     @Transient
     private Customer customer;
 }

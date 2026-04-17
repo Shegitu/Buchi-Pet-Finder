@@ -9,4 +9,5 @@ public interface AdoptionRepository extends MongoRepository<Adoption, String> {
     List<Adoption> findByPetId(String petId);
     List<Adoption> findByCustomerId(String customerId);
     List<Adoption> findByStatus(String status);
+    List<Adoption> findByAdoptionDateBetween(String fromDate, String toDate);
 }

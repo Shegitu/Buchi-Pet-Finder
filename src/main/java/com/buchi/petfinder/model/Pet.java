@@ -1,12 +1,13 @@
 package com.buchi.petfinder.model;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,14 +18,25 @@ public class Pet {
     @Id
     private String id;
 
-    @NotBlank(message = "Name is required")
+    @NotBlank
     private String name;
 
-    @NotBlank(message = "Type is required")
+    @NotBlank
     private String type;
 
-    @Min(value = 0, message = "Age must be non-negative")
-    private int age;
+    @NotBlank
+    private String gender;
+
+    @NotBlank
+    private String size;
+
+    private String age;
+
+    private boolean goodWithChildren;
 
     private String owner;
+
+    private List<String> photos;
+
+    private String source;
 }

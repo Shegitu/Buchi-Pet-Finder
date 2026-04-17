@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "PetFinder API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+
+    {
+      "name": "Create Pet",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/pets/create_pet",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "type", "value": "Dog", "type": "text" },
+            { "key": "gender", "value": "male", "type": "text" },
+            { "key": "size", "value": "small", "type": "text" },
+            { "key": "age", "value": "baby", "type": "text" },
+            { "key": "good_with_children", "value": "true", "type": "text" }
+          ]
+        }
+      }
+    },
+
+    {
+      "name": "Get Pets",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/pets/get_pets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"Dog\",\n  \"limit\": 5\n}"
+        }
+      }
+    },
+
+    {
+      "name": "Add Customer",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/customers/add_customer",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Abebe\",\n  \"phone\": \"0912345678\"\n}"
+        }
+      }
+    },
+
+    {
+      "name": "Adopt",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:8080/api/adoptions/adopt",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customer_id\": \"1\",\n  \"pet_id\": \"1\"\n}"
+        }
+      }
+    },
+
+    {
+      "name": "Get Adoption Requests",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:8080/api/adoptions/get_adoption_requests?from_date=2022-02-01&to_date=2026-01-01"
+      }
+    }
+
+  ]
+}

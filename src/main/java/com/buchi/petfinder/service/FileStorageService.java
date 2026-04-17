@@ -1,0 +1,42 @@
+package com.buchi.petfinder.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.*;
+
+@Service
+public class FileStorageService {
+
+    @Value("${file.upload-dir}")
+    private String uploadDir;
+
+    public String saveFile(MultipartFile file) {
+
+        if (file.isEmpty()) {
+            throw new RuntimeException("Cannot upload empty file");
+        }
+
+        String filename = StringUtils.cleanPath(file.getOriginalFilename());
+
+        try {
+            Path uploadPath = Paths.get(uploadDir);
+
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path filePath = uploadPath.resolve(filename);
+
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return "/uploads/" + filename;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file: " + filename);
+        }
+    }
+}

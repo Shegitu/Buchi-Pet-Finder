@@ -1,11 +1,10 @@
 package com.buchi.petfinder.service;
 
+import com.buchi.petfinder.dto.*;
 import com.buchi.petfinder.exception.ResourceNotFoundException;
 import com.buchi.petfinder.model.Adoption;
 import com.buchi.petfinder.model.Pet;
-import com.buchi.petfinder.model.Customer;
 import com.buchi.petfinder.repository.AdoptionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -19,91 +18,157 @@ public class AdoptionService {
     private final PetService petService;
     private final CustomerService customerService;
 
-    @Autowired
-    public AdoptionService(AdoptionRepository adoptionRepository, PetService petService, CustomerService customerService) {
+    public AdoptionService(AdoptionRepository adoptionRepository,
+                           PetService petService,
+                           CustomerService customerService) {
         this.adoptionRepository = adoptionRepository;
         this.petService = petService;
         this.customerService = customerService;
     }
 
-    public List<Adoption> getAllAdoptions() {
-        List<Adoption> adoptions = adoptionRepository.findAll();
-        adoptions.forEach(this::populatePetAndCustomer);
-        return adoptions;
+    //CREATE ADOPTION (Endpoint 4)
+    public AdoptIdResponse createAdoption(AdoptRequest req) {
+
+        // validate existence
+        petService.getPetById(req.getPetId());
+        customerService.getCustomerById(req.getCustomerId());
+
+        // prevent duplicate pending request
+        boolean exists = adoptionRepository.findByPetId(req.getPetId())
+                .stream()
+                .anyMatch(a -> a.getCustomerId().equals(req.getCustomerId())
+                        && "PENDING".equalsIgnoreCase(a.getStatus()));
+
+        if (exists) {
+            throw new RuntimeException("Duplicate adoption request");
+        }
+
+        Adoption adoption = new Adoption();
+        adoption.setPetId(req.getPetId());
+        adoption.setCustomerId(req.getCustomerId());
+        adoption.setStatus("PENDING");
+        adoption.setAdoptionDate(LocalDate.now().toString());
+
+        Adoption saved = adoptionRepository.save(adoption);
+
+        AdoptIdResponse res = new AdoptIdResponse();
+        res.setAdoptionId(saved.getId());
+        return res;
     }
 
+    // GET ALL (extra but useful)
+    public List<Adoption> getAllAdoptions() {
+        List<Adoption> list = adoptionRepository.findAll();
+        list.forEach(this::enrich);
+        return list;
+    }
+
+    //  GET BY ID
     public Adoption getAdoptionById(String id) {
         Adoption adoption = adoptionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Adoption with id " + id + " not found"));
-        populatePetAndCustomer(adoption);
+                .orElseThrow(() -> new ResourceNotFoundException("Adoption not found"));
+        enrich(adoption);
         return adoption;
     }
 
-    public Adoption createAdoption(Adoption adoption) {
-        Pet pet = petService.getPetById(adoption.getPetId());
-        Customer customer = customerService.getCustomerById(adoption.getCustomerId());
-
-        boolean duplicate = adoptionRepository.findByPetId(adoption.getPetId())
-                .stream()
-                .anyMatch(a -> a.getCustomerId().equals(adoption.getCustomerId()) && a.getStatus().equals("Pending"));
-        if (duplicate) {
-            throw new RuntimeException("Customer already has a pending adoption for this pet.");
+    // DELETE
+    public void deleteAdoption(String id) {
+        if (!adoptionRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Adoption not found");
         }
-
-        adoption.setStatus("Pending");
-        adoption.setAdoptionDate(LocalDate.now().toString());
-        Adoption saved = adoptionRepository.save(adoption);
-        populatePetAndCustomer(saved);
-        return saved;
+        adoptionRepository.deleteById(id);
     }
 
+    //  UPDATE STATUS
     public Adoption updateAdoptionStatus(String id, String status) {
-        if (!status.equals("Pending") && !status.equals("Approved") && !status.equals("Rejected")) {
-            throw new RuntimeException("Invalid status. Allowed: Pending, Approved, Rejected");
+
+        if (status == null ||
+                (!status.equalsIgnoreCase("PENDING")
+                        && !status.equalsIgnoreCase("APPROVED")
+                        && !status.equalsIgnoreCase("REJECTED"))) {
+            throw new RuntimeException("Invalid status");
         }
 
         Adoption adoption = adoptionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Adoption with id " + id + " not found"));
-        adoption.setStatus(status);
+                .orElseThrow(() -> new ResourceNotFoundException("Adoption not found"));
+
+        adoption.setStatus(status.toUpperCase());
+
         Adoption updated = adoptionRepository.save(adoption);
-        populatePetAndCustomer(updated);
+        enrich(updated);
         return updated;
     }
 
-    public void deleteAdoption(String id) {
-        Adoption adoption = adoptionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Adoption with id " + id + " not found"));
-        adoptionRepository.delete(adoption);
+    //  REQUIRED: get_adoption_requests (Endpoint 5)
+    public List<AdoptionRequestDTO> getRequestsByDateRange(String fromDate, String toDate) {
+
+        LocalDate from = LocalDate.parse(fromDate);
+        LocalDate to = LocalDate.parse(toDate);
+
+        List<Adoption> list = adoptionRepository.findAll()
+                .stream()
+                .filter(a -> {
+                    LocalDate d = LocalDate.parse(a.getAdoptionDate());
+                    return !d.isBefore(from) && !d.isAfter(to);
+                })
+                .sorted((a, b) -> b.getAdoptionDate().compareTo(a.getAdoptionDate()))
+                .collect(Collectors.toList());
+
+        return list.stream().map(this::toDto).collect(Collectors.toList());
     }
 
+    // EXTRA FILTERS 
     public List<Adoption> getAdoptionsByCustomer(String customerId) {
-        List<Adoption> adoptions = adoptionRepository.findByCustomerId(customerId);
-        adoptions.forEach(this::populatePetAndCustomer);
-        return adoptions;
+        return adoptionRepository.findByCustomerId(customerId);
     }
 
     public List<Adoption> getAdoptionsByPet(String petId) {
-        List<Adoption> adoptions = adoptionRepository.findByPetId(petId);
-        adoptions.forEach(this::populatePetAndCustomer);
-        return adoptions;
+        return adoptionRepository.findByPetId(petId);
     }
 
     public List<Adoption> getAdoptionsByStatus(String status) {
-        List<Adoption> adoptions = adoptionRepository.findByStatus(status);
-        adoptions.forEach(this::populatePetAndCustomer);
-        return adoptions;
+        return adoptionRepository.findByStatus(status);
     }
 
-    public List<Pet> filterPets(String type, Integer minAge, Integer maxAge) {
-        return petService.getAllPets().stream()
-                .filter(p -> (type == null || p.getType().equalsIgnoreCase(type)))
-                .filter(p -> (minAge == null || p.getAge() >= minAge))
-                .filter(p -> (maxAge == null || p.getAge() <= maxAge))
+    public List<Pet> filterPets(String type) {
+
+       List<Pet> pets = adoptionRepository.findAll()
+                .stream()
+                .map(a -> petService.getPetEntityById(a.getPetId()))
                 .collect(Collectors.toList());
+        return pets.stream()
+                 .filter(p -> type == null || p.getType().equalsIgnoreCase(type))
+                .collect(Collectors.toList());
+    } 
+
+   
+    
+    // DTO CONVERSION
+    private AdoptionRequestDTO toDto(Adoption a) {
+
+        AdoptionRequestDTO dto = new AdoptionRequestDTO();
+
+        dto.setCustomerId(a.getCustomerId());
+
+        var customer = customerService.getCustomerEntityById(a.getCustomerId());
+        dto.setCustomerName(customer.getName());
+        dto.setCustomerPhone(customer.getPhone());
+
+        dto.setPetId(a.getPetId());
+
+        Pet pet = petService.getPetEntityById(a.getPetId());
+        dto.setType(pet.getType());
+        dto.setGender(pet.getGender());
+        dto.setSize(pet.getSize());
+        dto.setAge(pet.getAge());
+        dto.setGoodWithChildren(pet.isGoodWithChildren());
+
+        return dto;
     }
 
-    private void populatePetAndCustomer(Adoption adoption) {
-        adoption.setPet(petService.getPetById(adoption.getPetId()));
-        adoption.setCustomer(customerService.getCustomerById(adoption.getCustomerId()));
+    // ENRICH DATA (attach pet + customer)
+    private void enrich(Adoption adoption) {
+        adoption.setPet(petService.getPetEntityById(adoption.getPetId()));
+        adoption.setCustomer(customerService.getCustomerEntityById(adoption.getCustomerId()));
     }
-}
+} 

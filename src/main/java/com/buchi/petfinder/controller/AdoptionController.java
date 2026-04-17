@@ -1,71 +1,40 @@
 package com.buchi.petfinder.controller;
 
-import com.buchi.petfinder.model.Adoption;
-import com.buchi.petfinder.model.Pet;
+import com.buchi.petfinder.dto.*;
 import com.buchi.petfinder.service.AdoptionService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/adoptions")
+@RequestMapping("/api")
 public class AdoptionController {
 
     private final AdoptionService adoptionService;
 
-    @Autowired
     public AdoptionController(AdoptionService adoptionService) {
         this.adoptionService = adoptionService;
     }
 
-    @GetMapping
-    public List<Adoption> getAllAdoptions() {
-        return adoptionService.getAllAdoptions();
+    // ✅ REQUIRED: POST adopt
+    @PostMapping("/adopt")
+    public ResponseEntity<AdoptIdResponse> adopt(@RequestBody AdoptRequest req) {
+        return ResponseEntity.ok(adoptionService.createAdoption(req));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Adoption> getAdoptionById(@PathVariable String id) {
-        return ResponseEntity.ok(adoptionService.getAdoptionById(id));
-    }
+    // ✅ REQUIRED: GET adoption requests by date
+    @GetMapping("/get_adoption_requests")
+    public ResponseEntity<AdoptionRequestsResponse> getAdoptionRequests(
+            @RequestParam String from_date,
+            @RequestParam String to_date) {
 
-    @PostMapping
-    public Adoption createAdoption(@RequestBody Adoption adoption) {
-        return adoptionService.createAdoption(adoption);
-    }
+        List<AdoptionRequestDTO> data =
+                adoptionService.getRequestsByDateRange(from_date, to_date);
 
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Adoption> updateAdoptionStatus(@PathVariable String id, @RequestParam String status) {
-        return ResponseEntity.ok(adoptionService.updateAdoptionStatus(id, status));
-    }
+        AdoptionRequestsResponse response = new AdoptionRequestsResponse();
+        response.setData(data);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAdoption(@PathVariable String id) {
-        adoptionService.deleteAdoption(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/customer/{customerId}")
-    public List<Adoption> getAdoptionsByCustomer(@PathVariable String customerId) {
-        return adoptionService.getAdoptionsByCustomer(customerId);
-    }
-
-    @GetMapping("/pet/{petId}")
-    public List<Adoption> getAdoptionsByPet(@PathVariable String petId) {
-        return adoptionService.getAdoptionsByPet(petId);
-    }
-
-    @GetMapping("/status/{status}")
-    public List<Adoption> getAdoptionsByStatus(@PathVariable String status) {
-        return adoptionService.getAdoptionsByStatus(status);
-    }
-
-    @GetMapping("/filter/pets")
-    public List<Pet> filterPets(
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) Integer minAge,
-            @RequestParam(required = false) Integer maxAge) {
-        return adoptionService.filterPets(type, minAge, maxAge);
+        return ResponseEntity.ok(response);
     }
 }

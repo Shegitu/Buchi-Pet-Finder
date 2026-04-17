@@ -4,25 +4,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
-
-
 import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PetDTO {
-    private String id;
-    private String name;
+public class PetSearchDTO {
+    private String petId;
+    private String source; // "local" or "petfinder"
     private String type;
+    private String gender;
+    private String size;
     private String age;
+    private Boolean goodWithChildren;
     private List<String> photos;
-
-    public PetDTO(String id, String name, String type, String age) {
-        this.id = id;
-        this.name = name;
-        this.type = type;
-        this.age = age;
-    }
 }
-
-
